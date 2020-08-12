@@ -10,6 +10,9 @@ from selenium.webdriver.firefox.options import Options
 qualities = ["720", "480", "420", "360", "240", "96" ]
 
 
+def handleNsfwPage(driver):
+    driver.find_element_by_xpath("/html/body/div[3]/div/form/div/button[2]").click()
+
 def getResponseCode(url):
     r = requests.head(url)
     return r.status_code
@@ -27,6 +30,9 @@ def getVRedditObject(link):
     options.headless = True
     driver = webdriver.Firefox(options=options)
     driver.get(link)
+
+    if driver.title == "reddit.com: over 18?":
+        handleNsfwPage(driver)
 
     elem = driver.find_element_by_xpath("/html/body/div[4]/div[1]/div/div/div[1]/a").get_attribute("href")
     quality = getAvailableQuality(elem)
