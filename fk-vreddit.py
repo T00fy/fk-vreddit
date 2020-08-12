@@ -66,6 +66,6 @@ if getResponseCode(obj[1]) == 200:
             tmpAudio.write(requests.get(obj[1], stream=True).content)
             subprocess.run(["ffmpeg", "-i", tmpVideo.name, "-i", tmpAudio.name, "-c", "copy", output])
 else:
-    with open(output, 'wb') as file:
-        file.write(requests.get(obj[0], stream=True).content) #todo: add loading bars?
-        print("Saved to " + output)
+    with tempfile.NamedTemporaryFile() as tmpVideo:
+        tmpVideo.write(requests.get(obj[0], stream=True).content) #todo: add loading bars?
+        subprocess.run(["ffmpeg", "-i", tmpVideo.name, "-c", "copy", output])
