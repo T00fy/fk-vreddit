@@ -7,6 +7,21 @@ import sys
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
+qualities = ["720", "480", "420", "360", "240", "96" ]
+
+
+def getResponseCode(url):
+    r = requests.head(url)
+    return r.status_code
+
+def getAvailableQuality(url):
+    for quality in qualities:
+        print("trying " + url + "/DASH_" + quality) 
+        responseCode = getResponseCode(url + "/DASH_" + quality + ".mp4")
+        if responseCode == 200:
+            return quality
+    sys.exit("Could not find an appropriate quality for this url")
+
 def getVRedditObject(link):
     options = Options()
     options.headless = True
@@ -14,8 +29,9 @@ def getVRedditObject(link):
     driver.get(link)
 
     elem = driver.find_element_by_xpath("/html/body/div[4]/div[1]/div/div/div[1]/a").get_attribute("href")
-    video = elem + "/DASH_720"
-    audio = elem + "/audio"
+    quality = getAvailableQuality(elem)
+    video = elem + "/DASH_" + quality + ".mp4"
+    audio = elem + "/DASH_audio.mp4"
 
     return (video, audio)
 
@@ -41,10 +57,15 @@ else:
         output = output + ".mp4"
 
 link = args['reddit_link']
-link.replace("www.reddit.com", "old.reddit.com")
+link = link.replace("www.reddit.com", "old.reddit.com")
 obj = getVRedditObject(link)
-with tempfile.NamedTemporaryFile() as tmpVideo:
-    with tempfile.NamedTemporaryFile() as tmpAudio:
-        tmpVideo.write(requests.get(obj[0], stream=True).content) #todo: add loading bars?
-        tmpAudio.write(requests.get(obj[1], stream=True).content)
-        subprocess.run(["ffmpeg", "-i", tmpVideo.name, "-i", tmpAudio.name, "-c", "copy", output])
+if getResponseCode(obj[1]) == 200:
+    with tempfile.NamedTemporaryFile() as tmpVideo:
+        with tempfile.NamedTemporaryFile() as tmpAudio:
+            tmpVideo.write(requests.get(obj[0], stream=True).content) #todo: add loading bars?
+            tmpAudio.write(requests.get(obj[1], stream=True).content)
+            subprocess.run(["ffmpeg", "-i", tmpVideo.name, "-i", tmpAudio.name, "-c", "copy", output])
+else:
+    with open(output, 'wb') as file:
+        file.write(requests.get(obj[0], stream=True).content) #todo: add loading bars?
+        print("Saved to " + output)
