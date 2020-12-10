@@ -7,23 +7,36 @@ import sys
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
-qualities = ["720", "480", "420", "360", "240", "96" ]
+qualities = ["720", "480", "420", "360", "240", "96", "720.mp4", "480.mp4", "420.mp4", "360.mp4", "240.mp4", "96.mp4" ]
+audios = ["DASH_audio", "audio", "DASH_audio.mp4", "audio.mp4"]
+headers = {'User-Agent': 'Mozilla/5.0 (Android 4.4; Mobile; rv:41.0) Gecko/41.0 Firefox/41.0'}
 
 
 def handleNsfwPage(driver):
+    print("Clicking nsfw button")
     driver.find_element_by_xpath("/html/body/div[3]/div/form/div/button[2]").click()
 
 def getResponseCode(url):
-    r = requests.head(url)
+    r = requests.head(url, headers = headers)
     return r.status_code
 
 def getAvailableQuality(url):
     for quality in qualities:
         print("trying " + url + "/DASH_" + quality) 
-        responseCode = getResponseCode(url + "/DASH_" + quality + ".mp4")
+        responseCode = getResponseCode(url + "/DASH_" + quality)
         if responseCode == 200:
             return quality
+        else:
+            print("Status code was " + str(responseCode))
     sys.exit("Could not find an appropriate quality for this url")
+
+def checkAudioLocation(url):
+    for audio in audios:
+        print("Looking up " + audio)
+        r = requests.head(url + "/" + audio, headers = headers)
+        if r.status_code == 200:
+            return url + "/" + audio
+    sys.exit("Could not find an appropriate audio for this url")
 
 def getVRedditObject(link):
     options = Options()
@@ -36,8 +49,8 @@ def getVRedditObject(link):
 
     elem = driver.find_element_by_xpath("/html/body/div[4]/div[1]/div/div/div[1]/a").get_attribute("href")
     quality = getAvailableQuality(elem)
-    video = elem + "/DASH_" + quality + ".mp4"
-    audio = elem + "/DASH_audio.mp4"
+    video = elem + "/DASH_" + quality
+    audio = checkAudioLocation(elem)
 
     return (video, audio)
 
